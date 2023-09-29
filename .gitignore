@@ -2,3 +2,4 @@
 read_noncanonical
 write_noncanonical
 .fuse_hidden0000012f00000002
+.vscode
