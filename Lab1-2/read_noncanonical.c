@@ -100,6 +100,15 @@ int main(int argc, char *argv[])
 
         if (buf[0] == FLAG && buf[1] == A_SENDER && buf[2] == C_SET && buf[3] == buf[1] ^ buf[2]){
             printf("The message is correct");
+
+            unsigned char answer[BUF_SIZE] = {0};
+            answer[0] = FLAG;
+            answer[1] = A_RECEIVER;
+            answer[2] = C_UA;
+            answer[3] = A_RECEIVER ^ C_UA;
+
+            int bytes = write(fd, answer, BUF_SIZE);
+
         }
 
         printf(":%s:%d\n", buf, bytes);

@@ -108,6 +108,17 @@ int main(int argc, char *argv[])
     // Wait until all bytes have been written to the serial port
     sleep(1);
 
+    unsigned char answer[BUF_SIZE + 1] = {0};
+
+    int answer_bytes = read(fd, answer, BUF_SIZE);
+    answer[bytes] = '\0';
+
+    printf(":%s:%d\n", answer, answer_bytes);
+
+    if (answer[0] == FLAG && answer[1] == A_RECEIVER && answer[2] == C_UA && answer[3] == answer[1] ^ answer[2]){
+        printf("Message sent successfully\n");
+    }
+
     // Restore the old port settings
     if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
     {
