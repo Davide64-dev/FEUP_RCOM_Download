@@ -11,6 +11,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include "macros.h"
+#include "alarm.h"
 
 // Baudrate settings are defined in <asm/termbits.h>, which is
 // included by <termios.h>
@@ -104,6 +105,21 @@ int main(int argc, char *argv[])
 
     int bytes = write(fd, buf, BUF_SIZE);
     printf("%d bytes written\n", bytes);
+
+    while(alarmCount < tries){
+        if(alarmEnabled == FALSE){
+            int bytes = write(fd, buf, 5);
+            alarm(timeout); // 3s para escrever
+            alarmEnabled = TRUE;
+            if (bytes < 0){
+                printf("Failed to send SET\n");
+            }
+            else{
+                printf("Sending: %x,%x,%x,%x,%x\n", buf[0], buf[1], buf[2], buf[3], buf[4]);
+                printf("Sent SET FRAME\n");
+            }
+        }
+    }
 
     // Wait until all bytes have been written to the serial port
     sleep(1);

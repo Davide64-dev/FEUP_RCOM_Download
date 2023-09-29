@@ -1,16 +1,4 @@
-// Alarm example
-//
-// Modified by: Eduardo Nuno Almeida [enalmeida@fe.up.pt]
-
-#include <unistd.h>
-#include <signal.h>
-#include <stdio.h>
-
-#define FALSE 0
-#define TRUE 1
-
-int alarmEnabled = FALSE;
-int alarmCount = 0;
+#include "alarm.h"
 
 // Alarm function handler
 void alarmHandler(int signal)
@@ -21,6 +9,7 @@ void alarmHandler(int signal)
     printf("Alarm #%d\n", alarmCount);
 }
 
+/*
 int main()
 {
     // Set alarm function handler
@@ -39,3 +28,4 @@ int main()
 
     return 0;
 }
+*/

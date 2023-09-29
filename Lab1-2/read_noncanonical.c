@@ -11,6 +11,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include "macros.h"
+#include "alarm.h"
 
 // Baudrate settings are defined in <asm/termbits.h>, which is
 // included by <termios.h>

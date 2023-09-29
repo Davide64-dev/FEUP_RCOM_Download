@@ -1,3 +1,4 @@
 .fuse_hidden0000012c00000001
 read_noncanonical
 write_noncanonical
+.fuse_hidden0000012f00000002
