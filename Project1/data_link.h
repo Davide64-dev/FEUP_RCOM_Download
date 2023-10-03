@@ -1,4 +1,15 @@
 #include "macros.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <termios.h>
+#include <unistd.h>
 
 struct linkLayer {
     char port[20]; /* Dispositivo /dev/ttySx, x = 0, 1 */
@@ -9,9 +20,11 @@ struct linkLayer {
     char frame[MAX_SIZE]; /* Trama */
 };
 
-void llopen(struct linkLayer* li, char* port);
+struct linkLayer* llopen(char* port, int mode);
 
 struct linkLayer* llOpenTransmiter(char* port);
+
+struct linkLayer* llOpenReceiver(char* port);
 
 void llwrite(struct linkLayer* li);
 
