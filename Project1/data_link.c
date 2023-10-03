@@ -50,7 +50,7 @@ struct linkLayer* llOpenReceiver(char* port){
     return ll;
 }
 
-struct linkLayer* llOpen(char* port, int mode){
+struct linkLayer* llopen(char* port, int mode){
     if (mode == TRANSMITER){
         return llOpenTransmiter(port);
     }
@@ -61,6 +61,6 @@ struct linkLayer* llOpen(char* port, int mode){
 
 
 int main(){
-    llOpen("/dev/ttyS11", TRANSMITER);
+    llopen("/dev/ttyS11", TRANSMITER);
     return 0;
 }
