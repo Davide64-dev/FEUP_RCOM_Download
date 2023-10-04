@@ -1,58 +1,61 @@
 #include "statemachine.h"
-#include "macros.h"
 
 
-void transition(state_machine* st, unsigned char trans){
+void transition(state_machine* st, unsigned char* frame, int len){
 
-    unsigned char A, C;
+    for (int i = 0; i < len; i++){
+        char trans = frame[i];
+        switch(st->current_state){
 
-    switch(st->current_state){
-
-        case START:
-            if (trans == FLAG){
-                st->current_state = FLAG_RCV;
-                A = trans;
-                return A;
-            }
-            return -1;
-        case FLAG_RCV:
-            if (trans == FLAG) return -1;
-            if (trans == st->adressByte){
-                st->current_state = A_RCV;
-                C = trans;
-                return C;
-            }
-            st->current_state = START;
-            return -1;
-        case A_RCV:
-            if (trans == FLAG){
-                st->current_state = FLAG_RCV;
-            }
-            if (trans == 10){ // não está correto, alterar quando perceber o significado daquela transição
-                st->current_state = C_RCV;
-            }
-            st->current_state = START;
-            return -1;
-
-        case C_RCV:
-            if (trans == FLAG){
+            case START:
+                if (trans == FLAG){
+                    st->current_state = FLAG_RCV;
+                    continue;
+                }
+                continue;
+            case FLAG_RCV:
+                if (trans == FLAG) continue;;
+                if (trans == st->adressByte){
+                    st->current_state = A_RCV;
+                    continue;
+                }
                 st->current_state = START;
-            }
-            else if (trans == A^C){
-                st->current_state = BCC_OK;
+                continue;
+            case A_RCV:
+                if (trans == FLAG){
+                    st->current_state = FLAG_RCV;
+                    continue;
+                }
+                else if (trans == 10){
+                    st->current_state = C_RCV;
+                    continue;
+                }
+                st->current_state = START;
+                continue;
+
+            case C_RCV:
+                if (trans == FLAG){
+                    st->current_state = START;
+                    continue;
+                }
+                else if (trans == 0){
+                    st->current_state = BCC_OK;
+                    continue;
+                }
+                st->current_state = START;
+                continue;
+            
+            case BCC_OK:
+            if (trans == FLAG){
+                st->current_state = STATE_STOP;
+                continue;
             }
             st->current_state = START;
-            return -1;
-        
-        case BCC_OK:
-          if (trans == FLAG){
-              st->current_state = STOP;
-          }
-          st->current_state = START;
-          return -1;
+            continue;
 
-        default:
-            return -1;
+            default:
+                continue;
 
+        }
     }
 }

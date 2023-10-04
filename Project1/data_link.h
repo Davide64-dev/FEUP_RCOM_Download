@@ -11,6 +11,7 @@
 #include <termios.h>
 #include <unistd.h>
 
+
 struct linkLayer {
     char port[20]; /* Dispositivo /dev/ttySx, x = 0, 1 */
     int baudRate;  /* Velocidade de transmissão */
