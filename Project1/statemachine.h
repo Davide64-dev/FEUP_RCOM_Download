@@ -20,8 +20,10 @@ void transition(state_machine* st, unsigned char* frame, int len){
 
     unsigned char A, C;
 
+
     for (int i = 0; i < len; i++){
         char trans = frame[i];
+        
         switch(st->current_state){
 
             case START:
@@ -43,7 +45,7 @@ void transition(state_machine* st, unsigned char* frame, int len){
                     st->current_state = FLAG_RCV;
                     continue;
                 }
-                else if (/*trans == 10*/ 1 == 1){ // pôr aqui a condição certa
+                else if (trans == C_SET){
                     st->current_state = C_RCV;
                     continue;
                 }
@@ -55,7 +57,7 @@ void transition(state_machine* st, unsigned char* frame, int len){
                     st->current_state = START;
                     continue;
                 }
-                else if (trans == A^C){
+                else if (trans == A_SENDER^C_SET){
                     st->current_state = BCC_OK;
                     continue;
                 }
@@ -63,12 +65,14 @@ void transition(state_machine* st, unsigned char* frame, int len){
                 continue;
             
             case BCC_OK:
-            if (trans == FLAG){
-                st->current_state = STATE_STOP;
+                if (trans == FLAG){
+                    printf("Right condition!");
+                    st->current_state = STATE_STOP;
+                    continue;
+                }
+                printf("Didn't work :(\n");
+                st->current_state = START;
                 continue;
-            }
-            st->current_state = START;
-            continue;
 
             default:
                 continue;

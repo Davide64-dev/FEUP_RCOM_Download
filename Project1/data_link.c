@@ -9,7 +9,7 @@ struct linkLayer* llOpenTransmiter(char* port){
     int fd = open(port, O_RDWR | O_NOCTTY);
     strcpy(ll->port, port);
 
-    unsigned char buf[SET_SIZE] = {FLAG, A_SENDER, C_SET, A_SENDER ^ C_SET, '\n'};
+    unsigned char buf[SET_SIZE] = {FLAG, A_SENDER, C_SET, A_SENDER ^ C_SET, FLAG};
     int bytes = write(fd, buf, SET_SIZE);
 
     int bytes1 = read(fd, buf, SET_SIZE);
@@ -37,7 +37,7 @@ struct linkLayer* llOpenReceiver(char* port){
         int bytes = read(fd, buf, SET_SIZE);
         buf[bytes] = '\0';
         //printf(":%s:%d\n", buf, bytes);
-        transition(st, buf, 4);
+        transition(st, buf, bytes);
         char A = st->current_state;
         printf("The final state is: %u\n", A);
         if (st->current_state == STATE_STOP || st->current_state == 4){

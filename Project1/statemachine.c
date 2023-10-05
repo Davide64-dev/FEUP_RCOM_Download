@@ -26,7 +26,7 @@ void transition(state_machine* st, unsigned char* frame, int len){
                     st->current_state = FLAG_RCV;
                     continue;
                 }
-                else if (trans == 10){
+                else if (trans == C_SET){
                     st->current_state = C_RCV;
                     continue;
                 }
