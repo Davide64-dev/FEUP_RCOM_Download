@@ -8,16 +8,24 @@ struct linkLayer* llOpenTransmiter(char* port){
     ll = (struct linkLayer*)malloc(sizeof(struct linkLayer));
     int fd = open(port, O_RDWR | O_NOCTTY);
     strcpy(ll->port, port);
-
     unsigned char buf[SET_SIZE] = {FLAG, A_SENDER, C_SET, A_SENDER ^ C_SET, FLAG};
-    int bytes = write(fd, buf, SET_SIZE);
+    int finish = FALSE;
 
-    int bytes1 = read(fd, buf, SET_SIZE);
-    buf[bytes1] = '\0';
-    if (buf[0] == 'z')
-    STOP = TRUE;
+    while(!finish){
+        int bytes = write(fd, buf, SET_SIZE);
+        int bytes1 = read(fd, buf, SET_SIZE);
+        buf[bytes1] = '\0';
+        if (buf[0] == 'z')
+            STOP = TRUE;
+        alarm(3);
 
-    printf("%d\n", bytes);
+        if (bytes1 >= 0){
+            alarm(0);
+            finish = TRUE;
+        }
+
+        printf("%d\n", bytes);
+    }
     return ll;
 }
 
@@ -40,10 +48,11 @@ struct linkLayer* llOpenReceiver(char* port){
         transition(st, buf, bytes);
         char A = st->current_state;
         printf("The final state is: %u\n", A);
-        if (st->current_state == STATE_STOP || st->current_state == 4){
+        if (st->current_state == STATE_STOP){
             printf("Right state! Sending back the response\n");
             unsigned char buf[SET_SIZE] = {FLAG, A_RECEIVER, C_UA, A_RECEIVER ^ C_UA, '\n'};
             int bytes = write(fd, buf, SET_SIZE);
+            STOP = TRUE;
         }
         if (buf[0] == 'z')
             STOP = TRUE;
@@ -62,8 +71,35 @@ struct linkLayer* llopen(char* port, int mode){
 
 }
 
+unsigned char BCC2(unsigned char* frame, int len){
+    unsigned char res = frame[0];
+    for (int i = 1; i < len; i++){
+        res = res ^frame[i];
+    }
+    return res;
+}
+
+void llwrite(struct linkLayer* li, char* frame, int length){
+    char buf[length + 6];
+    buf[0] = FLAG;
+    buf[1] = A_SENDER;
+
+    if (li->sequenceNumber == 0) buf[2] = 0;
+    else buf[2] = 0x40;
+
+    buf[3] = A_SENDER ^buf[2];
+
+    for (int i =4; i<length;i++)
+        buf[i] = frame[i-4];
+
+    buf[length + 4] = BCC2(frame, length);
+
+    buf[length + 5] = FLAG;
+}
+
 
 int main(){
-    llopen("/dev/ttyS11", TRANSMITER);
+    struct linkLayer* fd = llopen("/dev/ttyS11", TRANSMITER);
+    llwrite(fd, "Hello, World", 14);
     return 0;
 }

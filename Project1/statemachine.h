@@ -57,7 +57,7 @@ void transition(state_machine* st, unsigned char* frame, int len){
                     st->current_state = START;
                     continue;
                 }
-                else if (trans == A_SENDER^C_SET){
+                else if (trans == (A_SENDER^C_SET)){
                     st->current_state = BCC_OK;
                     continue;
                 }

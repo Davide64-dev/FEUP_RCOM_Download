@@ -27,7 +27,7 @@ struct linkLayer* llOpenTransmiter(char* port);
 
 struct linkLayer* llOpenReceiver(char* port);
 
-void llwrite(struct linkLayer* li);
+void llwrite(struct linkLayer* li, char* frame, int length);
 
 void llread(struct linkLayer* li);
 
