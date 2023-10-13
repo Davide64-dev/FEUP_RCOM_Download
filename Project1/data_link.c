@@ -50,7 +50,7 @@ struct linkLayer* llOpenReceiver(char* port){
         printf("The final state is: %u\n", A);
         if (st->current_state == STATE_STOP){
             printf("Right state! Sending back the response\n");
-            unsigned char buf[SET_SIZE] = {FLAG, A_RECEIVER, C_UA, A_RECEIVER ^ C_UA, '\n'};
+            unsigned char buf[SET_SIZE] = {FLAG, A_RECEIVER, C_UA, A_RECEIVER ^ C_UA, FLAG};
             int bytes = write(fd, buf, SET_SIZE);
             STOP = TRUE;
         }
@@ -99,7 +99,7 @@ void llwrite(struct linkLayer* li, char* frame, int length){
 
 
 int main(){
-    struct linkLayer* fd = llopen("/dev/ttyS11", TRANSMITER);
+    struct linkLayer* fd = llopen("/dev/ttyS10", RECEIVER);
     llwrite(fd, "Hello, World", 14);
     return 0;
 }

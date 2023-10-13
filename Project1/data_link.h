@@ -31,4 +31,8 @@ void llwrite(struct linkLayer* li, char* frame, int length);
 
 void llread(struct linkLayer* li);
 
-void llclose(struct linkLayer* li);
+struct linkLayer* llclose(char* port, int mode);
+
+struct linkLayer* llCloseTransmiter(char* port);
+
+struct linkLayer* llCloseReceiver(char* port);
