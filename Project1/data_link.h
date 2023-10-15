@@ -1,3 +1,6 @@
+#ifndef _DATA_LINK_H_
+#define _DATA_LINK_H_
+
 #include "macros.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,14 +24,16 @@ struct linkLayer {
     char frame[MAX_SIZE]; /* Trama */
 };
 
-struct linkLayer* llopen(char* port, int mode);
+int llopen(struct linkLayer* li, int mode);
 
-struct linkLayer* llOpenTransmiter(char* port);
+int llOpenTransmiter(struct linkLayer* li);
 
-struct linkLayer* llOpenReceiver(char* port);
+int llOpenReceiver(struct linkLayer* li);
 
-void llwrite(struct linkLayer* li, char* frame, int length);
+int llwrite(struct linkLayer* li, unsigned char* frame, int length);
 
-void llread(struct linkLayer* li);
+int llread(struct linkLayer* li, unsigned char* res);
 
 void llclose(struct linkLayer* li);
+
+#endif

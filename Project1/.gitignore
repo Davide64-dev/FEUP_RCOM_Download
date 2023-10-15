@@ -2,4 +2,7 @@
 .vscode
 receiver
 transmiter
+output
+statemachine.*
+statemachine
 ../.DS_Store
