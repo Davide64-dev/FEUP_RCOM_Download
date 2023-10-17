@@ -124,7 +124,7 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
 
     buf[length + 4] = BCC2(frame, length);
 
-    printf("%c\n", (char)BCC2(frame, length));
+    printf("BCC2 that was sent: %d\n", BCC2(frame, length));
 
     buf[length + 5] = FLAG;
 
@@ -143,7 +143,7 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
 
     while (!finish)
     {
-        read(fd, answer, 5);
+        bytes = read(fd, answer, 1000);
 
         if (li->sequenceNumber == 0){
             transition(st, answer, 5, A_RECEIVER, REJ0);
@@ -242,10 +242,12 @@ int llread(struct linkLayer* li, unsigned char* res){
         else if (buf[2] == 0x40)
             controlByteRead = 1;
 
-        transition(st, buf, 4, A_SENDER, controlByteRead);
+        transition(st, buf, 4, A_SENDER, buf[2]);
         if (st->current_state == BCC_OK){
             free(st);
-
+            printf("Until BBC is ok\n");
+            printf("Theorical: %d\n", buf[bytes-2]);
+            printf("Practical: %d\n", BCC2(&buf[4], bytes - 6));
             if ((buf[bytes - 2] == BCC2(&buf[4], bytes - 6)) && buf[bytes-1] == FLAG){
                 printf("BCC2 and the FLAG are ok\n");
                 unsigned char answer[6];
@@ -259,13 +261,17 @@ int llread(struct linkLayer* li, unsigned char* res){
                 write(fd, answer, 5);
 
                 printf("sent the answer\n");
-                //char* res1 = (char *)malloc(bytes-5);
-                //memcpy(res1, &buf[4], bytes - 6);
-                //res = res1;
-                //finish = TRUE;
-                //free(res);
-                //free(res1);
-                return 0;
+                memcpy(res, &buf[4], bytes - 6);
+
+
+                printf("Bytes que foram recebidos no llread e que vão ser enviados para o application layer-------------------\n");
+                for (int i = 0; i < bytes - 6; i++){
+                    printf("%d,", res[i]);
+                }
+                printf("\n");
+                printf("Bytes que foram recebidos no llread e que vão ser enviados para o application layer-------------------\n");
+                finish = TRUE;
+                return bytes - 6;
                 
             }
             else{

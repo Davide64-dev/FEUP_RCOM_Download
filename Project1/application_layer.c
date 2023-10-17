@@ -25,11 +25,6 @@ unsigned char* createControlPacket(int C, long FileSize, const char* filename, i
         ret[L1 + 5 + i] = filename[i];
     }
 
-    for (int i = 0; i < finalSize; i++){
-        printf("%d,",ret[i]);
-    }
-    printf("\n");
-
     return ret;
 }
 
@@ -58,8 +53,6 @@ void applicationLayerTransmiter(struct linkLayer* ll, const char *filename){
     long FileSize = ftell(file);
     fseek(file, begin, SEEK_SET);
 
-    printf("Size of the file: %ld\n", FileSize);
-
     int controlPacketLen;
 
     unsigned char* controlPacket = createControlPacket(2, FileSize, filename, &controlPacketLen);
@@ -68,29 +61,29 @@ void applicationLayerTransmiter(struct linkLayer* ll, const char *filename){
 
     char* data = (char *)malloc(FileSize);
 
-    fread(data, FileSize, FileSize, file);
-
-    for (int i = 0; i < FileSize; i++){
-        printf("%d,", data[i]);
+    for (int i = 0; i < FileSize; i++) {
+        data[i] = fgetc(file);
+        if (data[i] == EOF) {
+            break;
+        }
     }
-    printf("\n");
 
     long int RemainingBytes = FileSize;
 
-    while (RemainingBytes >= 0){
+    while (RemainingBytes > 0){
         int packageContentSize;
-        if (RemainingBytes > 1000) packageContentSize = 1000;
+        if (RemainingBytes > 100) packageContentSize = 100;
         else packageContentSize = RemainingBytes;
 
         unsigned char* packageContent = (unsigned char*) malloc(packageContentSize);
 
         memcpy(packageContent, data, packageContentSize);
 
-        int packageSize = 0;
+        int packageSize;
 
-        unsigned char* package = createDataPacket(package, packageContentSize, &packageSize);
+        unsigned char* packageToSend = createDataPacket(packageContent, packageContentSize, &packageSize);
 
-        llwrite(ll, package, 100);
+        llwrite(ll, packageToSend, packageSize);
 
         RemainingBytes -= packageContentSize;
         data += packageContentSize;
@@ -103,16 +96,14 @@ void applicationLayerTransmiter(struct linkLayer* ll, const char *filename){
 
     free(data);
 
-
     fclose(file);
 }
 
 void applicationLayerReceiver(struct linkLayer* ll){
-    printf("cheguei aqui!");
     llopen(ll, RECEIVER);
 
-    char *packet = (char *)malloc(1000);
-
+    unsigned char *packet = (unsigned char*)malloc(2000);
+    
     llread(ll, packet);
 
     char* FileName = "teste.gif"; // alterar isto para conseguir o valor certo do package;
@@ -124,21 +115,25 @@ void applicationLayerReceiver(struct linkLayer* ll){
     unsigned long int practicalSize = 0;
 
     while (!finish){
-        llread(ll, packet);
-        if(packet[3] == 3) finish = TRUE;
+        int packetSize = llread(ll, packet);
+        if(packet[0] == 3) finish = TRUE;
         else{
-            printf("cheguei aqui\n");
             unsigned long int contentSize = packet[1] * 256 + packet[2];
             practicalSize += contentSize;
-            char* content = (char *)malloc(contentSize);
 
-            memcpy(content, &packet[3], practicalSize);
-            fwrite(content, 1, contentSize, File);
-            free(content);
-        }
+            printf("=======================Dados que chegaram ao application=========\n");
+            for (int i = 0; i < packetSize; i++){
+                printf("%d,", packet[i]);
+            }
+            printf("\n=======================Dados que chegaram ao application=========\n");
+            
+            fwrite(&packet[3], sizeof(unsigned char), packetSize, File);
+
+            }
     }
 
-    free(packet);
+    printf("The practical Size is: %ld", practicalSize);
+
 
     fclose(File);
 }
@@ -169,7 +164,7 @@ void applicationLayer(const char *serialPort, int mode, int baudRate,
 
 
 int main(){
-    applicationLayer("/dev/ttyS11", TRANSMITER, 3, 3, 3, "penguin.gif");
+    applicationLayer("/dev/ttyS10", RECEIVER, 3, 3, 3, "penguin.gif");
     
     return 0;
 }
