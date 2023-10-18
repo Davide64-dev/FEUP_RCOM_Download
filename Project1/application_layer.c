@@ -127,7 +127,7 @@ void applicationLayerReceiver(struct linkLayer* ll){
             }
             printf("\n=======================Dados que chegaram ao application=========\n");
             
-            fwrite(&packet[3], sizeof(unsigned char), packetSize, File);
+            fwrite(&packet[3], sizeof(unsigned char), packetSize - 3, File);
 
             }
     }

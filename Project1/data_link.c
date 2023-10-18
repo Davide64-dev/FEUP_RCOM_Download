@@ -70,7 +70,7 @@ int llopen(struct linkLayer* ll, int mode){
 unsigned char BCC2(unsigned char* frame, int len){
     unsigned char res = frame[0];
     for (int i = 1; i < len; i++){
-        res = res ^frame[i];
+        res = res ^ frame[i];
     }
     return res;
 }
@@ -93,7 +93,7 @@ int byteStuffing(unsigned char* frame, int length) {
     }
     else if(aux[i] == 0x7D && i != (length + 5)) {
       frame[finalLength] = 0x7D;
-      frame[finalLength+1] = 0x5E;
+      frame[finalLength+1] = 0x5D;
       finalLength = finalLength + 2;
     }
     else{
@@ -119,21 +119,34 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
 
     buf[3] = A_SENDER ^ buf[2];
 
-    for (int i = 4; i <= length + 3;i++)
+    for (int i = 4; i < length + 4;i++)
         buf[i] = frame[i-4];
 
     buf[length + 4] = BCC2(frame, length);
 
     printf("BCC2 that was sent: %d\n", BCC2(frame, length));
 
+
     buf[length + 5] = FLAG;
+
+    printf("original Size: %d bytes\n", length + 6);
+
+    printf("-----------------Bytes Before the Stuffing--------------------\n");
+
+    for (int i = 0; i < length + 6; i++) printf("%d,", buf[i]);
 
     length = byteStuffing(buf, length);
 
-
     int bytes = write(fd, buf, length);
 
-    printf("Sent frame: %d bytes\n", bytes);
+    printf("Sent frame: %d bytes\n", length);
+
+    printf("-----------------Bytes After the Stuffing--------------------\n");
+
+    for (int i = 0; i < length; i++) printf("%d,", buf[i]);
+
+
+    printf("\n");
 
     int finish = FALSE;
 
@@ -187,6 +200,7 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
     return 0;
 }
 
+
 int byteDestuffing(unsigned char* frame, int length) {
 
   unsigned char aux[length + 5];
@@ -197,13 +211,13 @@ int byteDestuffing(unsigned char* frame, int length) {
 
   int finalLength = 4;
 
-  for(int i = 4; i < (length + 5); i++) {
+  for(int i = 4; i < length; i++) {
 
     if(aux[i] == 0x7D){
       if (aux[i+1] == 0x5D) {
         frame[finalLength] = 0x7D;
       }
-      else if(aux[i+1] == 0x5D) {
+      else if(aux[i+1] == 0x5E) {
         frame[finalLength] = FLAG;
       }
       i++;
@@ -218,6 +232,8 @@ int byteDestuffing(unsigned char* frame, int length) {
   return finalLength;
 }
 
+
+
 int llread(struct linkLayer* li, unsigned char* res){
     int fd = open(li->port, O_RDWR | O_NOCTTY);
     unsigned char buf[MAX_SIZE];
@@ -229,12 +245,27 @@ int llread(struct linkLayer* li, unsigned char* res){
         if (bytes > -1){
             printf("Read %s with success: %d\n", buf, bytes);
         }
-        byteDestuffing(buf, bytes);
-        state_machine* st = (state_machine*)malloc(sizeof(state_machine));
+
+
+        //printf("\n-----------------Bytes Before the DeStuffing--------------------\n");
+
+        //for (int i = 0; i < bytes; i++) printf("%d,", buf[i]);
+
+        int length = byteDestuffing(buf, bytes);
+
+        bytes = length;
+
+
+        printf("\n-----------------Bytes after the DeStuffing--------------------\n");
 
         for (int i = 0; i < bytes; i++) printf("%d,", buf[i]);
 
-        printf("\n");
+        state_machine* st = (state_machine*)malloc(sizeof(state_machine));
+
+        if (bytes > -1){
+            printf("\nRead %s with success (after Destuffing): %d\n", buf, bytes);
+        }
+
 
         int controlByteRead;
         if (buf[2] == 0)
