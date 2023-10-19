@@ -28,6 +28,21 @@ unsigned char* createControlPacket(int C, long FileSize, const char* filename, i
     return ret;
 }
 
+unsigned char* decodeControlPacket(unsigned char* packet, int size, unsigned long int* fileSize){
+    unsigned char fileSizeNBytes = packet[2];
+    unsigned char fileSizeAux[fileSizeNBytes];
+    memcpy(fileSizeAux, packet+3, fileSizeNBytes);
+
+    for(unsigned int i = 0; i < fileSizeNBytes; i++)
+        *fileSize |= (fileSizeAux[fileSizeNBytes-i-1] << (8*i));
+
+    unsigned char fileNameNBytes = packet[3+fileSizeNBytes+1];
+    unsigned char *name = (unsigned char*)malloc(fileNameNBytes);
+    memcpy(name, packet+3+fileSizeNBytes+2, fileNameNBytes);
+    return name;
+
+}
+
 unsigned char* createDataPacket(const unsigned char* packageContent, int packageContentSize, int* packetSize){
     int L2 = packageContentSize / 256;
     int L1 = packageContentSize % 256;
@@ -99,14 +114,20 @@ void applicationLayerTransmiter(struct linkLayer* ll, const char *filename){
     fclose(file);
 }
 
+
+
 void applicationLayerReceiver(struct linkLayer* ll){
     llopen(ll, RECEIVER);
 
     unsigned char *packet = (unsigned char*)malloc(2000);
     
-    llread(ll, packet);
+    int size = llread(ll, packet);
 
-    char* FileName = "teste.gif"; // alterar isto para conseguir o valor certo do package;
+
+    //char* FileName = "teste.gif"; // alterar isto para conseguir o valor certo do package;
+
+    unsigned int long ControlFileSize;
+    unsigned char* FileName = decodeControlPacket(packet, size, &ControlFileSize);
 
     FILE* File = fopen(FileName, "wb+");
 
@@ -166,7 +187,7 @@ void applicationLayer(const char *serialPort, int mode, int baudRate,
 
 
 int main(){
-    applicationLayer("/dev/ttyS11", TRANSMITER, 3, 3, 3, "penguin.gif");
+    applicationLayer("/dev/ttyS10", RECEIVER, 3, 3, 3, "penguin.gif");
     
     return 0;
 }
