@@ -1,6 +1,4 @@
 #include "data_link.h"
-#include "statemachine.h"
-#include <signal.h>
 
 volatile int STOP = FALSE;
 int alarmCount = 0;

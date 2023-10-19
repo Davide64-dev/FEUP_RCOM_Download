@@ -1,4 +1,4 @@
-#include "data_link.h"
+#include "application_layer.h"
 
 
 unsigned char* createControlPacket(int C, long FileSize, const char* filename, int* packetSize){
@@ -188,7 +188,7 @@ void applicationLayer(const char *serialPort, int mode, int baudRate,
 
 
 int main(){
-    applicationLayer("/dev/ttyS10", RECEIVER, 3, 3, 3, "penguin.gif");
+    applicationLayer("/dev/ttyS11", TRANSMITER, 3, 3, 3, "penguin.gif");
     
     return 0;
 }
