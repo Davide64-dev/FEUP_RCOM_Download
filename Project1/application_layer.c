@@ -124,10 +124,10 @@ void applicationLayerReceiver(struct linkLayer* ll){
     int size = llread(ll, packet);
 
 
-    //char* FileName = "teste.gif"; // alterar isto para conseguir o valor certo do package;
+    char* FileName = "teste.gif"; // alterar isto para conseguir o valor certo do package;
 
-    unsigned int long ControlFileSize;
-    unsigned char* FileName = decodeControlPacket(packet, size, &ControlFileSize);
+    //unsigned int long ControlFileSize;
+    //unsigned char* FileName = decodeControlPacket(packet, size, &ControlFileSize);
 
     FILE* File = fopen(FileName, "wb+");
 
@@ -170,6 +170,7 @@ void applicationLayer(const char *serialPort, int mode, int baudRate,
     strcpy(ll->port, serialPort);
     ll->baudRate = baudRate;
     ll->timeout = timeout;
+    ll->numTransmissions = nTries;
 
 
 

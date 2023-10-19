@@ -1,10 +1,19 @@
 #include "data_link.h"
 #include "statemachine.h"
+#include <signal.h>
 
 volatile int STOP = FALSE;
+int alarmCount = 0;
+int alarmTriggered = FALSE;
+
+void alarmHandler(int signal) {
+    alarmTriggered = TRUE;
+    alarmCount++;
+}
 
 int llOpenTransmiter(struct linkLayer* ll){
 
+    (void) signal(SIGALRM, alarmHandler);
     printf("llOpen Transmiter called\n");
     int fd = open(ll->port, O_RDWR | O_NOCTTY);
     unsigned char buf[SET_SIZE] = {FLAG, A_SENDER, C_SET, A_SENDER ^ C_SET, FLAG};
@@ -12,9 +21,12 @@ int llOpenTransmiter(struct linkLayer* ll){
 
     state_machine* st = (state_machine*)malloc(sizeof(state_machine));
 
-    while(finish == FALSE){
+    while(finish == FALSE && ll->numTransmissions != 0){
         st->current_state = START;
         int bytes = write(fd, buf, SET_SIZE);
+
+        alarm(ll->timeout);
+        alarmTriggered = FALSE;
         int bytes1 = read(fd, buf, SET_SIZE);
         transition(st, buf, bytes1, A_RECEIVER, C_UA);
         if (st->current_state == STATE_STOP){
@@ -24,6 +36,7 @@ int llOpenTransmiter(struct linkLayer* ll){
             return 0;
         }
     }
+    ll->numTransmissions--;
     return -1;
 }
 
@@ -129,6 +142,9 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
 
     int bytes = write(fd, buf, length);
 
+    alarmTriggered = FALSE;
+    alarm(li->timeout);
+
     printf("Sent frame: %d bytes\n", length);
 
     printf("-----------------Bytes After the Stuffing--------------------\n");
@@ -144,21 +160,24 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
 
     state_machine* st = (state_machine*)malloc(sizeof(state_machine));
 
-    while (!finish)
-    {
+    int currentTransmition = 0;
+
+    while (!finish && currentTransmition < li->numTransmissions){
+        currentTransmition++;
         bytes = read(fd, answer, 1000);
 
         if (li->sequenceNumber == 0){
             transition(st, answer, 5, A_RECEIVER, REJ0);
             if (st->current_state == STATE_STOP){
                 write(fd, buf, length);
+                alarm(li->timeout);
+                alarmTriggered = FALSE;
             }
 
             else{
                 st->current_state = START;
                 transition(st, answer, 5, A_RECEIVER, RR1);
                 if(st->current_state == STATE_STOP){
-                    alarm(0);
                     finish = TRUE;
                     printf("Mensagem recebida\n");
                     return bytes;
@@ -264,6 +283,7 @@ int llread(struct linkLayer* li, unsigned char* res){
             controlByteRead = 1;
 
         transition(st, buf, 4, A_SENDER, buf[2]);
+        unsigned char answer[6];
         if (st->current_state == BCC_OK){
             free(st);
             printf("Until BBC is ok\n");
@@ -271,7 +291,6 @@ int llread(struct linkLayer* li, unsigned char* res){
             printf("Practical: %d\n", BCC2(&buf[4], bytes - 6));
             if ((buf[bytes - 2] == BCC2(&buf[4], bytes - 6)) && buf[bytes-1] == FLAG){
                 printf("BCC2 and the FLAG are ok\n");
-                unsigned char answer[6];
                 answer[0] = FLAG;
                 answer[1] = A_RECEIVER;
                 if (controlByteRead) answer[2] = RR0;
@@ -296,20 +315,36 @@ int llread(struct linkLayer* li, unsigned char* res){
                 
             }
             else{
-                // send the rejection
+                printf("Hello, World!\n");
+                /*
+                answer[0] = FLAG;
+                answer[1] = A_RECEIVER;
+                if (controlByteRead) answer[2] = REJ1;
+                else answer[2] = REJ0;
+                answer[3] = answer[1] ^ answer[2];
+                answer[4] = FLAG;
                 printf("wrong!\n");
-                return -1;
+                write(fd, answer, 5);
+                */
             }
 
         }
         else{
-            // send the rejection
-            printf("wrong!\n");
-            return -1;
+            printf("Hello, World!\n");
+                /*
+                answer[0] = FLAG;
+                answer[1] = A_RECEIVER;
+                if (controlByteRead) answer[2] = REJ1;
+                else answer[2] = REJ0;
+                answer[3] = answer[1] ^ answer[2];
+                answer[4] = FLAG;
+                printf("wrong!\n");
+                write(fd, answer, 5);
+                */
         }
 
     }
-    return 0;
+    return -1;
 }
 
 int llCloseTransmiter(struct linkLayer* li){
