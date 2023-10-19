@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-I.
+CFLAGS=-I. -Wall
 DEPS = application_layer.h link_layer.h statemachine.h
 
 %.o: %.c $(DEPS)

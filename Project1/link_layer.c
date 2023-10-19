@@ -350,7 +350,7 @@ int llCloseTransmiter(struct linkLayer* li){
 
     while(!finish){
         st->current_state = START;
-        int bytes = write(fd, buf, SET_SIZE);
+        write(fd, buf, SET_SIZE);
         int bytes1 = read(fd, buf, SET_SIZE);
         transition(st, buf, bytes1, A_RECEIVER, C_DISC);
         if (st->current_state == STATE_STOP){
@@ -392,12 +392,16 @@ int llCloseReceiver(struct linkLayer* li){
                 for (int i = 0; i < bytes; i++) printf("%d,", buf[i]);
                 printf("\n");
                 transition(st, buf, bytes, A_SENDER, C_UA);
-                if (st->current_state == STATE_STOP) STOP2 = TRUE;
+                if (st->current_state == STATE_STOP) {
+                    STOP2 = TRUE;
+                    return 0;
+                }
             }
         }
     }
 
     free(st);
+    return -1;
 }
 
 int llclose(struct linkLayer* li, int mode){

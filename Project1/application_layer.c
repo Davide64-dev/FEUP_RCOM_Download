@@ -121,7 +121,7 @@ void applicationLayerReceiver(struct linkLayer* ll){
 
     unsigned char *packet = (unsigned char*)malloc(2000);
     
-    int size = llread(ll, packet);
+    llread(ll, packet);
 
 
     char* FileName = "teste.gif"; // alterar isto para conseguir o valor certo do package;
