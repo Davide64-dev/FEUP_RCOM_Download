@@ -153,7 +153,7 @@ void applicationLayerReceiver(struct linkLayer* ll){
             }
     }
 
-    printf("The practical Size is: %ld", practicalSize);
+    printf("The practical Size is: %ld\n", practicalSize);
 
 
     fclose(File);
@@ -188,7 +188,7 @@ void applicationLayer(const char *serialPort, int mode, int baudRate,
 
 
 int main(){
-    applicationLayer("/dev/ttyS11", TRANSMITER, 3, 3, 3, "penguin.gif");
+    applicationLayer("/dev/ttyS10", RECEIVER, 3, 3, 3, "penguin.gif");
     
     return 0;
 }

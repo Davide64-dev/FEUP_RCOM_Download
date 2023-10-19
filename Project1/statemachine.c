@@ -1,10 +1,12 @@
 #include "statemachine.h"
 
 
-void transition(state_machine* st, unsigned char* frame, int len){
+void transition(state_machine* st, unsigned char* frame, int len, unsigned char A, unsigned char C){
+
 
     for (int i = 0; i < len; i++){
         char trans = frame[i];
+        
         switch(st->current_state){
 
             case START:
@@ -15,7 +17,7 @@ void transition(state_machine* st, unsigned char* frame, int len){
                 continue;
             case FLAG_RCV:
                 if (trans == FLAG) continue;;
-                if (trans == st->adressByte){
+                if (trans == A){
                     st->current_state = A_RCV;
                     continue;
                 }
@@ -26,7 +28,7 @@ void transition(state_machine* st, unsigned char* frame, int len){
                     st->current_state = FLAG_RCV;
                     continue;
                 }
-                else if (trans == C_SET){
+                else if (trans == C){
                     st->current_state = C_RCV;
                     continue;
                 }
@@ -38,7 +40,7 @@ void transition(state_machine* st, unsigned char* frame, int len){
                     st->current_state = START;
                     continue;
                 }
-                else if (trans == 0){
+                else if (trans == (A^C)){
                     st->current_state = BCC_OK;
                     continue;
                 }
@@ -46,12 +48,12 @@ void transition(state_machine* st, unsigned char* frame, int len){
                 continue;
             
             case BCC_OK:
-            if (trans == FLAG){
-                st->current_state = STATE_STOP;
+                if (trans == FLAG){
+                    st->current_state = STATE_STOP;
+                    continue;
+                }
+                st->current_state = START;
                 continue;
-            }
-            st->current_state = START;
-            continue;
 
             default:
                 continue;
