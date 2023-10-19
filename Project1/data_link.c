@@ -316,7 +316,6 @@ int llread(struct linkLayer* li, unsigned char* res){
             }
             else{
                 printf("Hello, World!\n");
-                /*
                 answer[0] = FLAG;
                 answer[1] = A_RECEIVER;
                 if (controlByteRead) answer[2] = REJ1;
@@ -325,13 +324,11 @@ int llread(struct linkLayer* li, unsigned char* res){
                 answer[4] = FLAG;
                 printf("wrong!\n");
                 write(fd, answer, 5);
-                */
             }
 
         }
         else{
             printf("Hello, World!\n");
-                /*
                 answer[0] = FLAG;
                 answer[1] = A_RECEIVER;
                 if (controlByteRead) answer[2] = REJ1;
@@ -340,7 +337,6 @@ int llread(struct linkLayer* li, unsigned char* res){
                 answer[4] = FLAG;
                 printf("wrong!\n");
                 write(fd, answer, 5);
-                */
         }
 
     }
