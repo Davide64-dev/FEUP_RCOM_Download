@@ -94,6 +94,8 @@ void applicationLayerTransmiter(struct linkLayer* ll, const char *filename){
 
     llwrite(ll, controlPacket, controlPacketLen);
 
+    llclose(ll, TRANSMITER);
+
     fclose(file);
 }
 
@@ -134,6 +136,8 @@ void applicationLayerReceiver(struct linkLayer* ll){
 
 
     fclose(File);
+
+    llclose(ll, RECEIVER);
 }
 
 
@@ -162,7 +166,7 @@ void applicationLayer(const char *serialPort, int mode, int baudRate,
 
 
 int main(){
-    applicationLayer("/dev/ttyS11", TRANSMITER, 3, 3, 3, "penguin.gif");
+    applicationLayer("/dev/ttyS10", RECEIVER, 3, 3, 3, "penguin.gif");
     
     return 0;
 }

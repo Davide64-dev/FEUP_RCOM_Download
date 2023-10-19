@@ -322,6 +322,67 @@ int llread(struct linkLayer* li, unsigned char* res){
     return 0;
 }
 
+int llCloseTransmiter(struct linkLayer* li){
+    int fd = open(li->port, O_RDWR | O_NOCTTY);
+    unsigned char buf[SET_SIZE] = {FLAG, A_SENDER, C_DISC, A_SENDER ^ C_DISC, FLAG};
+    int finish = FALSE;
+
+    while(!finish){
+        int bytes = write(fd, buf, SET_SIZE);
+        int bytes1 = read(fd, buf, SET_SIZE);
+        if (bytes1 >= 0){
+            alarm(0);
+            finish = TRUE;
+            buf[2] = C_UA;
+            buf[3] = A_SENDER ^ C_UA;
+            int bytes2 = write(fd, buf, SET_SIZE);
+            printf("Sent bytes: %d\n", bytes2);
+            return 0;
+        }
+    }
+    return -1;
+}
+
+int llCloseReceiver(struct linkLayer* li){
+    int fd = open(li->port, O_RDWR | O_NOCTTY);
+    unsigned char buf[SET_SIZE];
+
+    state_machine* st = (state_machine*)malloc(sizeof(state_machine));
+    st->adressByte = A_SENDER;
+
+    STOP = FALSE;
+
+    while (STOP == FALSE)
+    {
+        st->current_state = START;
+        int bytes = read(fd, buf, SET_SIZE);
+        //printf(":%s:%d\n", buf, bytes);
+        transition(st, buf, bytes, A_SENDER, C_DISC);
+        char A = st->current_state;
+        printf("The final state is: %u\n", A);
+        if (st->current_state == STATE_STOP){
+            printf("Right State!\n");
+            unsigned char buf[SET_SIZE] = {FLAG, A_RECEIVER, C_DISC, A_RECEIVER ^ C_DISC, FLAG};
+            int bytes = write(fd, buf, SET_SIZE);
+            STOP = TRUE;
+            int STOP2 = FALSE;
+            while(!STOP2){
+                bytes = read(fd, buf, SET_SIZE);
+                if (bytes >= 0) STOP2 = TRUE;
+            }
+        }
+    }
+
+    free(st);
+}
+
+int llclose(struct linkLayer* li, int mode){
+    if (mode == RECEIVER){
+        return llCloseReceiver(li);
+    }
+    
+    return llCloseTransmiter(li);
+}
 
 /*
 int main(){
