@@ -186,10 +186,3 @@ void applicationLayer(const char *serialPort, int mode, int baudRate,
 
 }
 
-
-int main(){
-    applicationLayer("/dev/ttyS11", TRANSMITER, 3, 3, 3, "penguin.gif");
-    
-    return 0;
-}
-
