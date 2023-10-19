@@ -178,6 +178,7 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
                 if(st->current_state == STATE_STOP){
                     finish = TRUE;
                     printf("Mensagem recebida\n");
+                    li->sequenceNumber = !li->sequenceNumber;
                     return bytes;
                 }
             }
@@ -197,11 +198,14 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
                     alarm(0);
                     printf("mensagem recebida\n");
                     finish = TRUE;
+                    li->sequenceNumber = !li->sequenceNumber;
+                    return bytes;
                 }
             }
         }
 
     }
+
 
     free(st);
     return 0;
@@ -282,6 +286,19 @@ int llread(struct linkLayer* li, unsigned char* res){
 
         transition(st, buf, 4, A_SENDER, buf[2]);
         unsigned char answer[6];
+
+        if (controlByteRead != li->sequenceNumber){
+            li->sequenceNumber = !li->sequenceNumber;
+            answer[0] = FLAG;
+            answer[1] = A_RECEIVER;
+            if (controlByteRead == 1) answer[2] = RR0;
+            else answer[2] = RR1;
+            answer[3] = answer[1] ^ answer[2];
+            answer[4] = FLAG;
+            write(fd, answer, 5);
+            break;
+        }
+
         if (st->current_state == BCC_OK){
             free(st);
             printf("Until BBC is ok\n");
@@ -309,11 +326,11 @@ int llread(struct linkLayer* li, unsigned char* res){
                 printf("\n");
                 printf("Bytes que foram recebidos no llread e que vão ser enviados para o application layer-------------------\n");
                 finish = TRUE;
+                li->sequenceNumber = !li->sequenceNumber;
                 return bytes - 6;
                 
             }
             else{
-                printf("Hello, World!\n");
                 answer[0] = FLAG;
                 answer[1] = A_RECEIVER;
                 if (controlByteRead) answer[2] = REJ1;
@@ -326,7 +343,6 @@ int llread(struct linkLayer* li, unsigned char* res){
 
         }
         else{
-            printf("Hello, World!\n");
                 answer[0] = FLAG;
                 answer[1] = A_RECEIVER;
                 if (controlByteRead) answer[2] = REJ1;
