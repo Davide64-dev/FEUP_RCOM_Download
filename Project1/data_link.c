@@ -317,12 +317,16 @@ int llCloseTransmiter(struct linkLayer* li){
     unsigned char buf[SET_SIZE] = {FLAG, A_SENDER, C_DISC, A_SENDER ^ C_DISC, FLAG};
     int finish = FALSE;
 
+    state_machine* st = (state_machine*)malloc(sizeof(state_machine));
+
     while(!finish){
+        st->current_state = START;
         int bytes = write(fd, buf, SET_SIZE);
         int bytes1 = read(fd, buf, SET_SIZE);
-        if (bytes1 >= 0){
-            alarm(0);
+        transition(st, buf, bytes1, A_RECEIVER, C_DISC);
+        if (st->current_state == STATE_STOP){
             finish = TRUE;
+            buf[1] = A_SENDER;
             buf[2] = C_UA;
             buf[3] = A_SENDER ^ C_UA;
             int bytes2 = write(fd, buf, SET_SIZE);
@@ -336,9 +340,7 @@ int llCloseTransmiter(struct linkLayer* li){
 int llCloseReceiver(struct linkLayer* li){
     int fd = open(li->port, O_RDWR | O_NOCTTY);
     unsigned char buf[SET_SIZE];
-
     state_machine* st = (state_machine*)malloc(sizeof(state_machine));
-    st->adressByte = A_SENDER;
 
     STOP = FALSE;
 
@@ -346,19 +348,22 @@ int llCloseReceiver(struct linkLayer* li){
     {
         st->current_state = START;
         int bytes = read(fd, buf, SET_SIZE);
-        //printf(":%s:%d\n", buf, bytes);
         transition(st, buf, bytes, A_SENDER, C_DISC);
-        char A = st->current_state;
-        printf("The final state is: %u\n", A);
+
+
         if (st->current_state == STATE_STOP){
-            printf("Right State!\n");
+            printf("primeira trama recebida com sucesso\n");
             unsigned char buf[SET_SIZE] = {FLAG, A_RECEIVER, C_DISC, A_RECEIVER ^ C_DISC, FLAG};
             int bytes = write(fd, buf, SET_SIZE);
             STOP = TRUE;
             int STOP2 = FALSE;
             while(!STOP2){
                 bytes = read(fd, buf, SET_SIZE);
-                if (bytes >= 0) STOP2 = TRUE;
+                st->current_state = START;
+                for (int i = 0; i < bytes; i++) printf("%d,", buf[i]);
+                printf("\n");
+                transition(st, buf, bytes, A_SENDER, C_UA);
+                if (st->current_state == STATE_STOP) STOP2 = TRUE;
             }
         }
     }
