@@ -1,4 +1,6 @@
 #include "link_layer.h"
+#define BAUDRATE B38400
+
 
 volatile int STOP = FALSE;
 int alarmCount = 0;
@@ -14,6 +16,35 @@ int llOpenTransmiter(struct linkLayer* ll){
     (void) signal(SIGALRM, alarmHandler);
     printf("llOpen Transmiter called\n");
     int fd = open(ll->port, O_RDWR | O_NOCTTY);
+
+    if (fd < 0){
+        exit(-1);
+    }
+
+    struct termios oldtio;
+    struct termios newtio;
+
+    if(tcgetattr(fd, &oldtio) == -1){
+        perror("tcgetattr");
+        exit(-1);
+    }
+
+    memset(&newtio, 0, sizeof(newtio));
+
+    newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
+    newtio.c_iflag = IGNPAR;
+    newtio.c_oflag = 0;
+
+    newtio.c_lflag = 0;
+    newtio.c_cc[VTIME] = 1;
+    newtio.c_cc[VMIN] = 0;
+
+    tcflush(fd, TCIOFLUSH);
+
+    if (tcsetattr(fd, TCSANOW, &newtio) == -1){
+        perror("tcsetattr");
+        exit(-1);
+    }
     unsigned char buf[SET_SIZE] = {FLAG, A_SENDER, C_SET, A_SENDER ^ C_SET, FLAG};
     int finish = FALSE;
 
@@ -40,6 +71,36 @@ int llOpenTransmiter(struct linkLayer* ll){
 
 int llOpenReceiver(struct linkLayer* ll){
     int fd = open(ll->port, O_RDWR | O_NOCTTY);
+
+    if (fd < 0){
+        exit(-1);
+    }
+
+    struct termios oldtio;
+    struct termios newtio;
+
+    if(tcgetattr(fd, &oldtio) == -1){
+        perror("tcgetattr");
+        exit(-1);
+    }
+
+    memset(&newtio, 0, sizeof(newtio));
+
+    newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
+    newtio.c_iflag = IGNPAR;
+    newtio.c_oflag = 0;
+
+    newtio.c_lflag = 0;
+    newtio.c_cc[VTIME] = 1;
+    newtio.c_cc[VMIN] = 0;
+
+    tcflush(fd, TCIOFLUSH);
+
+    if (tcsetattr(fd, TCSANOW, &newtio) == -1){
+        perror("tcsetattr");
+        exit(-1);
+    }
+
     unsigned char buf[SET_SIZE];
 
     state_machine* st = (state_machine*)malloc(sizeof(state_machine));
