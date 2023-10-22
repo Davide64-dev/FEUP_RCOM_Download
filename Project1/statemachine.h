@@ -5,7 +5,8 @@ typedef enum state {
     A_RCV = 2,
     C_RCV = 3,
     BCC_OK = 4,
-    STATE_STOP = 5
+    STATE_STOP = 5,
+    READ_DATA = 6
 } state;
 
 typedef struct state_machine {

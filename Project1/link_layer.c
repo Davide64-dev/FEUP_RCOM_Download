@@ -130,6 +130,7 @@ int llopen(struct linkLayer* ll, int mode){
 }
 
 unsigned char BCC2(unsigned char* frame, int len){
+
     unsigned char res = frame[0];
     for (int i = 1; i < len; i++){
         res = res ^ frame[i];
@@ -193,9 +194,16 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
 
     printf("original Size: %d bytes\n", length + 6);
 
+    //printf("-----------------Bytes Before the Stuffing--------------------\n");
+
+    //for (int i = 0; i < length + 6; i++) printf("%d,", buf[i]);
+
     printf("-----------------Bytes Before the Stuffing--------------------\n");
 
     for (int i = 0; i < length + 6; i++) printf("%d,", buf[i]);
+
+
+    printf("\n");
 
     length = byteStuffing(buf, length);
 
@@ -204,7 +212,7 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
     alarmTriggered = FALSE;
     alarm(li->timeout);
 
-    printf("Sent frame: %d bytes\n", length);
+    printf("Sent frame: %d bytes\n", bytes);
 
     printf("-----------------Bytes After the Stuffing--------------------\n");
 
@@ -223,7 +231,12 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
 
     while (!finish && currentTransmition < li->numTransmissions){
         currentTransmition++;
-        bytes = read(fd, answer, 1000);
+        bytes = read(fd, answer, 15);
+
+        for (int i = 0; i < bytes; i++){
+            printf("%d, ", answer[i]);
+        }
+        printf("\n");
 
         if (li->sequenceNumber == 0){
             transition(st, answer, 5, A_RECEIVER, REJ0);
@@ -231,6 +244,7 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
                 write(fd, buf, length);
                 alarm(li->timeout);
                 alarmTriggered = FALSE;
+                printf("The Message was not received correctly\n");
             }
 
             else{
@@ -238,10 +252,12 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
                 transition(st, answer, 5, A_RECEIVER, RR1);
                 if(st->current_state == STATE_STOP){
                     finish = TRUE;
-                    printf("Mensagem recebida\n");
+                    printf("The Message was received correctly\n");
                     li->sequenceNumber = !li->sequenceNumber;
                     return bytes;
                 }
+                else
+                    printf("Something really weird!\n");
             }
         }
 
@@ -250,6 +266,9 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
 
             if (st->current_state == STATE_STOP){
                 write(fd, buf, length);
+                alarm(li->timeout);
+                alarmTriggered = FALSE;
+                printf("The Message was not received correctly\n");
             }
 
             else{
@@ -257,12 +276,17 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
                 transition(st, answer, 5, A_RECEIVER, RR0);
                 if(st->current_state == STATE_STOP){
                     alarm(0);
-                    printf("mensagem recebida\n");
+                    printf("The Message was received correctly\n");
                     finish = TRUE;
                     li->sequenceNumber = !li->sequenceNumber;
                     return bytes;
                 }
+                else printf("Something really weird!\n");
             }
+        }
+
+        else{
+            printf("The sequence number can only be 0 or 1, something is wrong here\n");
         }
 
     }
@@ -281,9 +305,9 @@ int byteDestuffing(unsigned char* frame, int length) {
     aux[i] = frame[i];
   }
 
-  int finalLength = 4;
+  int finalLength = 0;
 
-  for(int i = 4; i < length; i++) {
+  for(int i = 0; i < length; i++) {
 
     if(aux[i] == 0x7D){
       if (aux[i+1] == 0x5D) {
@@ -308,113 +332,138 @@ int byteDestuffing(unsigned char* frame, int length) {
 
 int llread(struct linkLayer* li, unsigned char* res){
     int fd = open(li->port, O_RDWR | O_NOCTTY);
-    unsigned char buf[MAX_SIZE];
+    unsigned char buf[1] = {0};
     int finish = FALSE;
-    while (finish == FALSE)
-    {
-        int bytes = read(fd, buf, MAX_SIZE);
+    unsigned char *information = (unsigned char *)malloc(300 * sizeof(unsigned char));
+    while (!finish){
+        int len = 0;
+        unsigned char answer[5];
+        unsigned char expected, notexpected;
+        int STATE = START;
+        while (STATE != STATE_STOP){
+            int bytes = read(fd, buf, 1);
 
-        if (bytes > -1){
-            printf("Read %s with success: %d\n", buf, bytes);
+            if (bytes > -1){
+                printf("Read %d with success: %d\n", buf[0], 1);
+            }
+
+            switch(STATE){
+                case START:
+                    if (buf[0] == FLAG) STATE = FLAG_RCV;
+                    continue;
+                case FLAG_RCV:
+                    printf("Flag state!\n");
+                    if (buf[0] == FLAG) continue;
+                    else if (buf[0] == A_SENDER) {
+                        STATE = A_RCV;
+                    }
+                    else STATE = START;
+                    continue;
+                case A_RCV:
+                    printf("A state\n");
+                    if (li->sequenceNumber == 0){
+                        expected = 0x0;
+                        notexpected = 0x40;
+                    }
+                    else{
+                        expected = 0x40;
+                        notexpected = 0x0;
+                    }
+                    if (buf[0] == FLAG) STATE = FLAG_RCV;
+                    else if (buf[0] == expected) STATE = C_RCV;
+                    else if (buf[0] == notexpected){
+                        answer[0] = FLAG;
+                        answer[1] = A_RECEIVER;
+                        if (li->sequenceNumber == 1) answer[2] = RR0;
+                        else answer[2] = RR1;
+                        answer[3] = answer[1] ^ answer[2];
+                        answer[4] = FLAG;
+                        write(fd, answer, 5);
+                        finish = TRUE;
+                        break;
+                    }
+                    else STATE = START;
+                    continue;
+                case C_RCV:
+                    printf("C state\n");
+                    if (buf[0] == FLAG) STATE = FLAG_RCV;
+                    else{
+                        unsigned char expected;
+                        if (li->sequenceNumber == 0){
+                            expected = 0x0;
+                        }
+                        else{
+                            expected = 0x40;
+                        }
+                        if (buf[0] == (A_SENDER ^ expected)) STATE = READ_DATA;
+                        else STATE = START;
+                    }
+                    continue;
+                case READ_DATA:
+                    printf("READ_DATA state\n");
+                    if (buf[0] == FLAG) STATE = STATE_STOP;
+                    else{
+                        information[len] = buf[0];
+                        len++;
+                    }
+                    continue;
+            }
+        }
+        if (STATE == A_RCV) return -1;
+        printf("sai do ciclo!\n");
+
+        int tempLen = byteDestuffing(information, len);
+
+        printf("Lenght before the destuffing: %d\n", len);
+        printf("Lenght after the destuffing: %d\n", tempLen);
+
+        len = tempLen;
+
+        for (int i = 0; i < len;i++){
+            printf("%d, ", information[i]);
         }
 
+        unsigned char theorical_bcc2 = information[len-1];
 
-        //printf("\n-----------------Bytes Before the DeStuffing--------------------\n");
+        printf("Theorical BCC2: %d\n", theorical_bcc2);
 
-        //for (int i = 0; i < bytes; i++) printf("%d,", buf[i]);
+        unsigned char practical_bcc2 = BCC2(information, len-1);
+        printf("Practial BCC2: %d\n", practical_bcc2);
+        printf("Len: %d\n", len);
 
-        int length = byteDestuffing(buf, bytes);
-
-        bytes = length;
-
-
-        printf("\n-----------------Bytes after the DeStuffing--------------------\n");
-
-        for (int i = 0; i < bytes; i++) printf("%d,", buf[i]);
-
-        state_machine* st = (state_machine*)malloc(sizeof(state_machine));
-
-        if (bytes > -1){
-            printf("\nRead %s with success (after Destuffing): %d\n", buf, bytes);
-        }
-
-
-        int controlByteRead;
-        if (buf[2] == 0)
-            controlByteRead = 0;
-        else if (buf[2] == 0x40)
-            controlByteRead = 1;
-
-        transition(st, buf, 4, A_SENDER, buf[2]);
-        unsigned char answer[6];
-
-        if (controlByteRead != li->sequenceNumber){
-            li->sequenceNumber = !li->sequenceNumber;
+        if (theorical_bcc2 == practical_bcc2 ){
+            printf("Cheguei aqui!\n");
             answer[0] = FLAG;
             answer[1] = A_RECEIVER;
-            if (controlByteRead == 1) answer[2] = RR0;
-            else answer[2] = RR1;
-            answer[3] = answer[1] ^ answer[2];
+            if (li->sequenceNumber == 0){
+                answer[2] = RR1;
+            }
+            else if (li->sequenceNumber == 1){
+                answer[2] = RR0;
+            }
+            answer[3] = answer[1] ^answer[2];
             answer[4] = FLAG;
             write(fd, answer, 5);
-            break;
-        }
-
-        if (st->current_state == BCC_OK){
-            free(st);
-            printf("Until BBC is ok\n");
-            printf("Theorical: %d\n", buf[bytes-2]);
-            printf("Practical: %d\n", BCC2(&buf[4], bytes - 6));
-            if ((buf[bytes - 2] == BCC2(&buf[4], bytes - 6)) && buf[bytes-1] == FLAG){
-                printf("BCC2 and the FLAG are ok\n");
-                answer[0] = FLAG;
-                answer[1] = A_RECEIVER;
-                if (controlByteRead) answer[2] = RR0;
-                else answer[2] = RR1;
-                answer[3] = answer[1] ^ answer[2];
-                answer[4] = FLAG;
-
-                write(fd, answer, 5);
-
-                printf("sent the answer\n");
-                memcpy(res, &buf[4], bytes - 6);
-
-
-                printf("Bytes que foram recebidos no llread e que vão ser enviados para o application layer-------------------\n");
-                for (int i = 0; i < bytes - 6; i++){
-                    printf("%d,", res[i]);
-                }
-                printf("\n");
-                printf("Bytes que foram recebidos no llread e que vão ser enviados para o application layer-------------------\n");
-                finish = TRUE;
-                li->sequenceNumber = !li->sequenceNumber;
-                return bytes - 6;
-                
-            }
-            else{
-                answer[0] = FLAG;
-                answer[1] = A_RECEIVER;
-                if (controlByteRead) answer[2] = REJ1;
-                else answer[2] = REJ0;
-                answer[3] = answer[1] ^ answer[2];
-                answer[4] = FLAG;
-                printf("wrong!\n");
-                write(fd, answer, 5);
-            }
+            li->sequenceNumber = !li->sequenceNumber;
+            memcpy(res, information, len-1);
+            finish = TRUE;
+            return len-1;
 
         }
         else{
-                answer[0] = FLAG;
-                answer[1] = A_RECEIVER;
-                if (controlByteRead) answer[2] = REJ1;
-                else answer[2] = REJ0;
-                answer[3] = answer[1] ^ answer[2];
-                answer[4] = FLAG;
-                printf("wrong!\n");
-                write(fd, answer, 5);
+            answer[0] = FLAG;
+            answer[1] = A_RECEIVER;
+            if (li->sequenceNumber == 0) answer[2] = REJ0;
+            else answer[2] = REJ1;
+            answer[3] = answer[1] ^ answer[2];
+            answer[4] = FLAG;
+            printf("wrong!\n");
+            write(fd, answer, 5);
+            STATE = START;
         }
 
     }
+
     return -1;
 }
 
