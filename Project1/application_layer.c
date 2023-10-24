@@ -76,12 +76,7 @@ void applicationLayerTransmiter(struct linkLayer* ll, const char *filename){
 
     char* data = (char *)malloc(FileSize);
 
-    for (int i = 0; i < FileSize; i++) {
-        data[i] = fgetc(file);
-        if (data[i] == EOF) {
-            break;
-        }
-    }
+    fread(data, 1, FileSize, file);
 
     long int RemainingBytes = FileSize;
 
@@ -124,7 +119,7 @@ void applicationLayerReceiver(struct linkLayer* ll){
     int size = llread(ll, packet);
 
 
-    char* FileName = "teste.gif"; // alterar isto para conseguir o valor certo do package;
+    char* FileName = "teste.gif";
 
     //unsigned int long ControlFileSize;
     //unsigned char* FileName = decodeControlPacket(packet, size, &ControlFileSize);

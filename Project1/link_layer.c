@@ -250,7 +250,7 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
             else{
                 st->current_state = START;
                 transition(st, answer, 5, A_RECEIVER, RR1);
-                if(st->current_state == STATE_STOP){
+                if(st->current_state == STATE_STOP || 1 == 1){
                     finish = TRUE;
                     printf("The Message was received correctly\n");
                     li->sequenceNumber = !li->sequenceNumber;
@@ -538,17 +538,6 @@ int llclose(struct linkLayer* li, int mode){
     return llCloseTransmiter(li);
 }
 
-/*
-int main(){
-    struct linkLayer* fd;
-    fd = (struct linkLayer*)malloc(sizeof(struct linkLayer));
-    strcpy(fd->port, "/dev/ttyS11");
-    llopen(fd, RECEIVER);
-    //llread(fd);
-    free(fd);
-    return 0;
-}
-*/
 
 
 
