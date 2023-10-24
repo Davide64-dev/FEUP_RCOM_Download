@@ -5,7 +5,7 @@ void transition(state_machine* st, unsigned char* frame, int len, unsigned char 
 
 
     for (int i = 0; i < len; i++){
-        char trans = frame[i];
+        unsigned char trans = frame[i];
         
         switch(st->current_state){
 

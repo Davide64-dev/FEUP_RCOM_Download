@@ -209,7 +209,7 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
 
     int bytes = write(fd, buf, length);
 
-    alarmTriggered = FALSE;
+
     alarm(li->timeout);
 
     printf("Sent frame: %d bytes\n", bytes);
@@ -231,6 +231,7 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
 
     while (!finish && currentTransmition < li->numTransmissions){
         currentTransmition++;
+        alarm(li->timeout);
         bytes = read(fd, answer, 15);
 
         for (int i = 0; i < bytes; i++){
@@ -250,7 +251,7 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
             else{
                 st->current_state = START;
                 transition(st, answer, 5, A_RECEIVER, RR1);
-                if(st->current_state == STATE_STOP || 1 == 1){
+                if(st->current_state == STATE_STOP){
                     finish = TRUE;
                     printf("The Message was received correctly\n");
                     li->sequenceNumber = !li->sequenceNumber;
