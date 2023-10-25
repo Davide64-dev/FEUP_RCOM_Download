@@ -119,10 +119,10 @@ void applicationLayerReceiver(struct linkLayer* ll){
     int size = llread(ll, packet);
 
 
-    char* FileName = "teste.gif";
+    //char* FileName = "teste.gif";
 
-    //unsigned int long ControlFileSize;
-    //unsigned char* FileName = decodeControlPacket(packet, size, &ControlFileSize);
+    unsigned int long ControlFileSize;
+    unsigned char* FileName = decodeControlPacket(packet, size, &ControlFileSize);
 
     FILE* File = fopen(FileName, "wb+");
 
