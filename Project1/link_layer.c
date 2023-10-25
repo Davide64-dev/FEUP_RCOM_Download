@@ -490,6 +490,7 @@ int llCloseTransmiter(struct linkLayer* li){
             return 0;
         }
     }
+
     return -1;
 }
 

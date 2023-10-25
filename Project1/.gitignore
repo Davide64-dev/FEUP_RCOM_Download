@@ -9,3 +9,5 @@ statemachine
 *.o
 main
 teste.gif
+.DS_STORE
+../.DS_STORE
