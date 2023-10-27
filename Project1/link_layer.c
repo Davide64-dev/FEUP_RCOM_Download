@@ -187,38 +187,21 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
 
     buf[length + 4] = BCC2(frame, length);
 
-    printf("BCC2 that was sent: %d\n", BCC2(frame, length));
-
 
     buf[length + 5] = FLAG;
 
-    printf("original Size: %d bytes\n", length + 6);
-
-    //printf("-----------------Bytes Before the Stuffing--------------------\n");
-
-    //for (int i = 0; i < length + 6; i++) printf("%d,", buf[i]);
-
     printf("-----------------Bytes Before the Stuffing--------------------\n");
-
     for (int i = 0; i < length + 6; i++) printf("%d,", buf[i]);
-
-
     printf("\n");
 
     length = byteStuffing(buf, length);
 
     int bytes = write(fd, buf, length);
 
-
     alarm(li->timeout);
 
-    printf("Sent frame: %d bytes\n", bytes);
-
     printf("-----------------Bytes After the Stuffing--------------------\n");
-
     for (int i = 0; i < length; i++) printf("%d,", buf[i]);
-
-
     printf("\n");
 
     int finish = FALSE;
@@ -232,7 +215,7 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
     while (!finish && currentTransmition < li->numTransmissions){
         currentTransmition++;
         alarm(li->timeout);
-        bytes = read(fd, answer, 15);
+        bytes = read(fd, answer, 5);
 
         for (int i = 0; i < bytes; i++){
             printf("%d, ", answer[i]);
@@ -335,8 +318,8 @@ int llread(struct linkLayer* li, unsigned char* res){
     int fd = open(li->port, O_RDWR | O_NOCTTY);
     unsigned char buf[1] = {0};
     int finish = FALSE;
-    unsigned char *information = (unsigned char *)malloc(300 * sizeof(unsigned char));
     while (!finish){
+        unsigned char *information = (unsigned char *)malloc(300 * sizeof(unsigned char));
         int len = 0;
         unsigned char answer[5];
         unsigned char expected, notexpected;
@@ -462,6 +445,8 @@ int llread(struct linkLayer* li, unsigned char* res){
             write(fd, answer, 5);
             STATE = START;
         }
+
+        free(information);
 
     }
 
