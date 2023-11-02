@@ -196,7 +196,13 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
 
     length = byteStuffing(buf, length);
 
+    //unsigned char temp = buf[15];
+
+    //buf[15] = temp + 1;
+
     int bytes = write(fd, buf, length);
+
+    //buf[15] = temp;
 
     alarm(li->timeout);
 
@@ -221,8 +227,8 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
             printf("%d, ", answer[i]);
         }
         printf("\n");
-
         if (li->sequenceNumber == 0){
+            st->current_state = START;
             transition(st, answer, 5, A_RECEIVER, REJ0);
             if (st->current_state == STATE_STOP){
                 write(fd, buf, length);
@@ -246,6 +252,7 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
         }
 
         else if (li->sequenceNumber == 1){
+            st->current_state = START;
             transition(st, answer, 5, A_RECEIVER, REJ1);
 
             if (st->current_state == STATE_STOP){
@@ -393,7 +400,6 @@ int llread(struct linkLayer* li, unsigned char* res){
                     continue;
             }
         }
-        if (STATE == A_RCV) return -1;
         printf("sai do ciclo!\n");
 
         int tempLen = byteDestuffing(information, len);
