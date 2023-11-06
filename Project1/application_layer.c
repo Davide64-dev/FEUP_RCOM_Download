@@ -60,7 +60,7 @@ unsigned char* createDataPacket(const unsigned char* packageContent, int package
 }
 
 void applicationLayerTransmiter(struct linkLayer* ll, const char *filename){
-    llopen(ll, TRANSMITER);
+    if (llopen(ll, TRANSMITER) == -1) return;
     FILE* file = fopen(filename, "rb");
 
     int begin = ftell(file);

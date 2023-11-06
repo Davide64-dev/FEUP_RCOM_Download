@@ -7,7 +7,8 @@ int alarmCount = 0;
 int alarmTriggered = FALSE;
 
 void alarmHandler(int signal) {
-    alarmTriggered = TRUE;
+    alarmTriggered = FALSE;
+    printf("Alarm called for %d\n", alarmCount);
     alarmCount++;
 }
 
@@ -50,12 +51,13 @@ int llOpenTransmiter(struct linkLayer* ll){
 
     state_machine* st = (state_machine*)malloc(sizeof(state_machine));
 
-    while(finish == FALSE && ll->numTransmissions != 0){
+    while(finish == FALSE && ll->numTransmissions > alarmCount){
+        if (alarmTriggered == FALSE){
+            alarm(ll->timeout);
+            alarmTriggered = TRUE;
+        }
         st->current_state = START;
         int bytes = write(fd, buf, SET_SIZE);
-
-        alarm(ll->timeout);
-        alarmTriggered = FALSE;
         int bytes1 = read(fd, buf, SET_SIZE);
         transition(st, buf, bytes1, A_RECEIVER, C_UA);
         if (st->current_state == STATE_STOP){
