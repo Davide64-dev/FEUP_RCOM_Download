@@ -172,7 +172,10 @@ int byteStuffing(unsigned char* frame, int length) {
 
 
 
-int llwrite(struct linkLayer* li, unsigned char* frame, int length){
+int llwrite(struct linkLayer* li, unsigned char* frame, int length) {
+
+    (void) signal(SIGALRM, alarmHandler);
+
     int fd = open(li->port, O_RDWR | O_NOCTTY);
 
     unsigned char buf[length + 6];
@@ -184,12 +187,10 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
 
     buf[3] = A_SENDER ^ buf[2];
 
-    for (int i = 4; i < length + 4;i++)
-        buf[i] = frame[i-4];
+    for (int i = 4; i < length + 4; i++)
+        buf[i] = frame[i - 4];
 
     buf[length + 4] = BCC2(frame, length);
-
-
     buf[length + 5] = FLAG;
 
     printf("-----------------Bytes Before the Stuffing--------------------\n");
@@ -198,96 +199,103 @@ int llwrite(struct linkLayer* li, unsigned char* frame, int length){
 
     length = byteStuffing(buf, length);
 
-    //unsigned char temp = buf[15];
-
-    //buf[15] = temp + 1;
-
     int bytes = write(fd, buf, length);
 
-    //buf[15] = temp;
-
-    alarm(li->timeout);
+    alarm(3);
+    alarmTriggered = TRUE;
 
     printf("-----------------Bytes After the Stuffing--------------------\n");
     for (int i = 0; i < length; i++) printf("%d,", buf[i]);
     printf("\n");
 
     int finish = FALSE;
-
     unsigned char answer[5];
-
     state_machine* st = (state_machine*)malloc(sizeof(state_machine));
 
-    int currentTransmition = 0;
-
-    while (!finish && currentTransmition < li->numTransmissions){
-        currentTransmition++;
-        alarm(li->timeout);
+    while (!finish && alarmCount < li->numTransmissions) {
         bytes = read(fd, answer, 5);
 
-        for (int i = 0; i < bytes; i++){
+        if (bytes == 0 && alarmTriggered == FALSE) {
+            write(fd, buf, length);
+            alarm(li->timeout);
+            alarmTriggered = TRUE;
+            continue;
+        }
+
+        if(bytes == 0 && alarmTriggered == TRUE) continue;
+
+        alarmCount = 0;
+        alarm(0);
+        alarmTriggered = FALSE;
+
+        for (int i = 0; i < bytes; i++) {
             printf("%d, ", answer[i]);
         }
         printf("\n");
-        if (li->sequenceNumber == 0){
+
+        if (li->sequenceNumber == 0) {
             st->current_state = START;
             transition(st, answer, 5, A_RECEIVER, REJ0);
-            if (st->current_state == STATE_STOP){
+            if (st->current_state == STATE_STOP) {
                 write(fd, buf, length);
                 alarm(li->timeout);
-                alarmTriggered = FALSE;
+                alarmTriggered = TRUE;
                 printf("The Message was not received correctly\n");
-            }
-
-            else{
+            } else {
                 st->current_state = START;
                 transition(st, answer, 5, A_RECEIVER, RR1);
-                if(st->current_state == STATE_STOP){
+                if (st->current_state == STATE_STOP) {
                     finish = TRUE;
                     printf("The Message was received correctly\n");
                     li->sequenceNumber = !li->sequenceNumber;
                     return bytes;
-                }
-                else
+                } else {
                     printf("Something really weird!\n");
+                    write(fd, buf, length);
+                    alarm(li->timeout);
+                    alarmTriggered = TRUE;
+                }
             }
-        }
-
-        else if (li->sequenceNumber == 1){
+        } else if (li->sequenceNumber == 1) {
             st->current_state = START;
             transition(st, answer, 5, A_RECEIVER, REJ1);
 
-            if (st->current_state == STATE_STOP){
+            if (st->current_state == STATE_STOP) {
                 write(fd, buf, length);
                 alarm(li->timeout);
-                alarmTriggered = FALSE;
+                alarmTriggered = TRUE;
                 printf("The Message was not received correctly\n");
-            }
-
-            else{
+            } else {
                 st->current_state = START;
                 transition(st, answer, 5, A_RECEIVER, RR0);
-                if(st->current_state == STATE_STOP){
-                    alarm(0);
+                if (st->current_state == STATE_STOP) {
                     printf("The Message was received correctly\n");
                     finish = TRUE;
                     li->sequenceNumber = !li->sequenceNumber;
                     return bytes;
+                } else {
+                    printf("Something really weird!\n");
+                    write(fd, buf, length);
+                    alarm(li->timeout);
+                    alarmTriggered = TRUE;
                 }
-                else printf("Something really weird!\n");
             }
-        }
-
-        else{
+        } else {
             printf("The sequence number can only be 0 or 1, something is wrong here\n");
         }
-
     }
 
-
     free(st);
-    return 0;
+
+    if (alarmCount >= li->numTransmissions) {
+        printf("Transmission failed after the maximum number of attempts.\n");
+        return -1;
+    }
+
+    else return 0;
+
 }
+
 
 
 int byteDestuffing(unsigned char* frame, int length) {
@@ -529,7 +537,6 @@ int llclose(struct linkLayer* li, int mode){
     if (mode == RECEIVER){
         return llCloseReceiver(li);
     }
-    
     return llCloseTransmiter(li);
 }
 

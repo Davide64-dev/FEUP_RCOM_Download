@@ -93,7 +93,9 @@ void applicationLayerTransmiter(struct linkLayer* ll, const char *filename){
 
         unsigned char* packageToSend = createDataPacket(packageContent, packageContentSize, &packageSize);
 
-        llwrite(ll, packageToSend, packageSize);
+        int bytesSent = llwrite(ll, packageToSend, packageSize);
+
+        if (bytesSent < 0) return;
 
         RemainingBytes -= packageContentSize;
         data += packageContentSize;
@@ -132,6 +134,7 @@ void applicationLayerReceiver(struct linkLayer* ll){
 
     while (!finish){
         int packetSize = llread(ll, packet);
+        if (packetSize == -1) return;
         if(packet[0] == 3) finish = TRUE;
         else{
             unsigned long int contentSize = packet[1] * 256 + packet[2];
