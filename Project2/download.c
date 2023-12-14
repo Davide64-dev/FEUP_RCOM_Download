@@ -134,13 +134,11 @@ int authenticate(const int socket, const char* user, const char* pass) {
 }
 
 int changePath(const int socket, const char* path){
-    char path1[strlen(path)];
     char path1[strlen(path) + 1];
 
     char answer[MAX_LENGTH];
-    strcpy(path1, path);
 
-    int size = strlen(path1);
+    int size = strlen(path);
     int found = 0;
 
     int count = 0;
@@ -150,6 +148,7 @@ int changePath(const int socket, const char* path){
             found = 1;
             break;    
         }
+        path1[i] = path[i];
     }
 
     if (found == 0) return 1;
@@ -160,40 +159,70 @@ int changePath(const int socket, const char* path){
     printf("%s", command);
 
 
-    readResponse(socket, answer);
+    return readResponse(socket, answer);
 
     printf("The path after the changePath is: %s\n", path);
 }
 
-int putPASV(const int socket){
+int putPASV(const int socket, char *ip, int *port){
     char answer[MAX_LENGTH];
-    char command[7];
-    sprintf(command, "pasv\r\n");
+    int ip1, ip2, ip3, ip4, port1, port2;
+    write(socket, "pasv\n", 5);
+    if (readResponse(socket, answer) != 227) return -1;
 
-    write(socket, command, 7);
+    sscanf(answer, "%*[^(](%d,%d,%d,%d,%d,%d)%*[^\n$)]", &ip1, &ip2, &ip3, &ip4, &port1, &port2);
+    *port = port1 * 256 + port2;
+    sprintf(ip, "%d.%d.%d.%d", ip1, ip2, ip3, ip4);
 
-    readResponse(socket, answer);
+    return 227;
 }
 
-int getFile(const int socket, const char* path){
+int requestFile(const int socket, const char* path){
 
-    printf("The path is: %s\n", path);
-    char *path1[len(path)];
-    strcpy(path1, path);
+    char *path1[strlen(path)];
     char answer[MAX_LENGTH];
-
-
     int size = strlen(path);
-    int found = 0;
 
     for (int i = size - 1; i >= 0; i--) {
         if (path[i] == '/') {
-            strcpy(path1, path[i]);
+            strcpy(path1, path + i + 1);
             break;
         }
     }
 
-    printf("File name: %s\n", answer);
+    char command[5+strlen(path1)+2]; sprintf(command, "retr %s\r\n", path1);
+
+    write(socket, command, strlen(command));
+
+    return readResponse(socket, answer);
+
+}
+
+int getResource(const int socketA, const int socketB, char *filename) {
+
+    FILE *fd = fopen(filename, "wb");
+    if (fd == NULL) {
+        printf("Error opening or creating file '%s'\n", filename);
+        exit(-1);
+    }
+
+    char buffer[MAX_LENGTH];
+    int bytes;
+    do {
+        bytes = read(socketB, buffer, MAX_LENGTH);
+        if (fwrite(buffer, bytes, 1, fd) < 0) return -1;
+    } while (bytes);
+    fclose(fd);
+
+    return readResponse(socketA, buffer);
+}
+
+int closeConnection(const int socketA, const int socketB) {
+    
+    char answer[MAX_LENGTH];
+    write(socketA, "quit\n", 5);
+    if(readResponse(socketA, answer) != 221) return -1;
+    return close(socketA) || close(socketB);
 }
 
 
@@ -223,11 +252,15 @@ int main(int argc, char *argv[]) {
 
     changePath(socketA, url->path);
 
-    putPASV(socketA);
+    int port;
+    char ip[MAX_LENGTH];
+    putPASV(socketA, ip, &port);
 
-    getFile(socketA, url->path);
+    int socketB = createSocket(ip, port);
 
-    //printf("Socket Number: %d\n", socketA);
+    requestFile(socketA, url->path);
+
+    //getResource(socketA, socketB, url->file);
 
 
     free(url);
