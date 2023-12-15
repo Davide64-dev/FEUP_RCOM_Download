@@ -139,29 +139,32 @@ int changePath(const int socket, const char* path){
     char answer[MAX_LENGTH];
 
     int size = strlen(path);
+
     int found = 0;
 
-    int count = 0;
+    for (int i = 0; i < size; i++){
+        path1[i] = path[i];
+    }
+
     for (int i = size - 1; i >= 0; i--){
         if (path1[i] == '/') {
             path1[i] = '\0';
             found = 1;
-            break;    
+            break;
         }
-        path1[i] = path[i];
     }
 
-    if (found == 0) return 1;
+    if (found == 0){
+        return;
+    }
+
     char command[4+strlen(path1)+2]; sprintf(command, "cwd %s\r\n", path1);
 
     write(socket, command, strlen(command));
 
-    printf("%s", command);
-
 
     return readResponse(socket, answer);
 
-    printf("The path after the changePath is: %s\n", path);
 }
 
 int putPASV(const int socket, char *ip, int *port){
@@ -177,20 +180,53 @@ int putPASV(const int socket, char *ip, int *port){
     return 227;
 }
 
+
+char* getFileName(const char* path){
+    char *path1 = malloc(strlen(path) + 1);
+    char answer[MAX_LENGTH];
+    int size = strlen(path);
+
+    int found = 0;
+    for (int i = size - 1; i >= 0; i--) {
+        if (path[i] == '/') {
+            strcpy(path1, path + i + 1);
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found){
+        for (int i = 0; i < size; i++){
+            path1[i] = path[i];
+        }
+    }
+
+    return path1;
+}
+
 int requestFile(const int socket, const char* path){
 
     char *path1[strlen(path)];
     char answer[MAX_LENGTH];
     int size = strlen(path);
 
+    int found = 0;
     for (int i = size - 1; i >= 0; i--) {
         if (path[i] == '/') {
             strcpy(path1, path + i + 1);
+            found = 1;
             break;
         }
     }
 
+    if (!found){
+        for (int i = 0; i < size; i++){
+            path1[i] = path[i];
+        }
+    }
+
     char command[5+strlen(path1)+2]; sprintf(command, "retr %s\r\n", path1);
+
 
     write(socket, command, strlen(command));
 
@@ -199,6 +235,7 @@ int requestFile(const int socket, const char* path){
 }
 
 int getResource(const int socketA, const int socketB, char *filename) {
+
 
     FILE *fd = fopen(filename, "wb");
     if (fd == NULL) {
@@ -254,13 +291,16 @@ int main(int argc, char *argv[]) {
 
     int port;
     char ip[MAX_LENGTH];
+
     putPASV(socketA, ip, &port);
 
     int socketB = createSocket(ip, port);
 
     requestFile(socketA, url->path);
 
-    //getResource(socketA, socketB, url->file);
+    char* temp = getFileName(url->path);
+
+    getResource(socketA, socketB, temp);
 
 
     free(url);
