@@ -155,7 +155,7 @@ int changePath(const int socket, const char* path){
     }
 
     if (found == 0){
-        return;
+        return 250;
     }
 
     char command[4+strlen(path1)+2]; sprintf(command, "cwd %s\r\n", path1);
@@ -301,6 +301,8 @@ int main(int argc, char *argv[]) {
     char* temp = getFileName(url->path);
 
     getResource(socketA, socketB, temp);
+
+    closeConnection(socketA, socketB);
 
 
     free(url);
