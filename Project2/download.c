@@ -155,6 +155,8 @@ int changePath(const int socket, const char* path){
     }
 
     if (found == 0){
+        printf("\n\n\n%s\n\n\n", path);
+        printf("\n\n\n%s\n\n\n", path1);
         return 250;
     }
 
@@ -205,9 +207,10 @@ char* getFileName(const char* path){
 }
 
 int requestFile(const int socket, const char* path){
-
-    char *path1[strlen(path)];
     char answer[MAX_LENGTH];
+
+    /*
+    char *path1[strlen(path)];
     int size = strlen(path);
 
     int found = 0;
@@ -225,7 +228,9 @@ int requestFile(const int socket, const char* path){
         }
     }
 
-    char command[5+strlen(path1)+2]; sprintf(command, "retr %s\r\n", path1);
+    */
+
+    char command[5+strlen(path)+2]; sprintf(command, "retr %s\r\n", path);
 
 
     write(socket, command, strlen(command));
@@ -287,7 +292,7 @@ int main(int argc, char *argv[]) {
 
     authenticate(socketA, url->user, url->password);
 
-    changePath(socketA, url->path);
+   // changePath(socketA, url->path);
 
     int port;
     char ip[MAX_LENGTH];
