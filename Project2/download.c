@@ -252,7 +252,7 @@ int getResource(const int socketA, const int socketB, char *filename) {
     int bytes;
     do {
         bytes = read(socketB, buffer, MAX_LENGTH);
-        if (fwrite(buffer, bytes, 1, fd) < 0) return -1;
+        if (fwrite(&buffer, bytes, 1, fd) < 0) return -1;
     } while (bytes);
     fclose(fd);
 
