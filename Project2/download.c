@@ -47,19 +47,17 @@ int createSocket(char *ip, int port)
     int sockfd;
     struct sockaddr_in server_addr;
 
-    /*server address handling*/
     bzero((char *)&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr(ip); /*32 bit Internet address network byte ordered*/
-    server_addr.sin_port = htons(port);          /*server TCP port must be network byte ordered */
+    server_addr.sin_addr.s_addr = inet_addr(ip); 
+    server_addr.sin_port = htons(port);
 
-    /*open a TCP socket*/
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         perror("socket()");
         return -1;
     }
-    /*connect to the server*/
+
     if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
         perror("connect()");
@@ -74,33 +72,57 @@ int readResponse(const int socket, char* buffer) {
 
     char byte;
 
-    int index = 0, responseCode;
-    ResponseState state = START;
+    int i = 0, res;
+
+    struct StateMachine machine;
+    machine.state = START;
     memset(buffer, 0, MAX_LENGTH);
 
-    while (state != END) {
+    while (machine.state != END) {
         
         read(socket, &byte, 1);
         printf("%c", byte);
-        switch (state) {
+        switch (machine.state) {
             case START:
-                if (byte == ' ') state = SINGLE;
-                else if (byte == '-') state = MULTIPLE;
-                else if (byte == '\n') state = END;
-                else buffer[index++] = byte;
-                break;
+                if (byte == ' ') {
+                    machine.state = SINGLE;
+                    break;
+                }
+                else if (byte == '-') {
+                    machine.state = MULTIPLE;
+                    break;
+                }
+                else if (byte == '\n') {
+                    machine.state = END;
+                    break;
+                }
+                else {
+                    buffer[i] = byte;
+                    i++;
+                    break;
+                }
             case SINGLE:
-                if (byte == '\n') state = END;
-                else buffer[index++] = byte;
-                break;
+                if (byte == '\n') {
+                    machine.state = END;
+                    break;
+                }
+                else {
+                    buffer[i] = byte;
+                    i++;
+                    break;
+                };
             case MULTIPLE:
                 if (byte == '\n') {
                     memset(buffer, 0, MAX_LENGTH);
-                    state = START;
-                    index = 0;
+                    machine.state = START;
+                    i = 0;
+                    break;
                 }
-                else buffer[index++] = byte;
-                break;
+                else {
+                    buffer[i] = byte;
+                    i++;
+                    break;
+                }
             case END:
                 break;
             default:
@@ -109,15 +131,13 @@ int readResponse(const int socket, char* buffer) {
         
     }
 
-    sscanf(buffer, "%d", &responseCode);
-    return responseCode;
+    sscanf(buffer, "%d", &res);
+    return res;
 }
 
 
 
 int authenticate(const int socket, const char* user, const char* pass) {
-
-
     char userCommand[5+strlen(user)+1]; sprintf(userCommand, "user %s\n", user);
     char passCommand[5+strlen(pass)+1]; sprintf(passCommand, "pass %s\n", pass);
     char answer[MAX_LENGTH];
@@ -209,27 +229,6 @@ char* getFileName(const char* path){
 int requestFile(const int socket, const char* path){
     char answer[MAX_LENGTH];
 
-    /*
-    char *path1[strlen(path)];
-    int size = strlen(path);
-
-    int found = 0;
-    for (int i = size - 1; i >= 0; i--) {
-        if (path[i] == '/') {
-            strcpy(path1, path + i + 1);
-            found = 1;
-            break;
-        }
-    }
-
-    if (!found){
-        for (int i = 0; i < size; i++){
-            path1[i] = path[i];
-        }
-    }
-
-    */
-
     char command[5+strlen(path)+2]; sprintf(command, "retr %s\r\n", path);
 
 
@@ -292,8 +291,6 @@ int main(int argc, char *argv[]) {
 
     authenticate(socketA, url->user, url->password);
 
-   // changePath(socketA, url->path);
-
     int port;
     char ip[MAX_LENGTH];
 
@@ -313,3 +310,8 @@ int main(int argc, char *argv[]) {
     free(url);
     return 0;
 }
+
+/*
+ftp://ftp.up.pt/pub/kodi/timestamp.txt
+ftp://rcom:rcom@netlab1.fe.up.pt/files/crab.mp4
+*/

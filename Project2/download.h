@@ -26,7 +26,11 @@ typedef enum {
     SINGLE,
     MULTIPLE,
     END
-} ResponseState;
+} State;
+
+struct StateMachine{
+    State state;
+};
 
 struct URL {
     char user[MAX_LENGTH];
@@ -42,9 +46,22 @@ char* get_ip_addr(const struct URL* url);
 
 int createSocket(char *ip, int port);
 
+int readResponse(const int socket, char* buffer);
+
 int authenticate(const int socket, const char* user, const char* pass);
 
-int readResponse(const int socket, char* buffer);
+int changePath(const int socket, const char* path);
+
+int putPASV(const int socket, char *ip, int *port);
+
+char* getFileName(const char* path);
+
+int requestFile(const int socket, const char* path);
+
+int getResource(const int socketA, const int socketB, char *filename);
+
+int closeConnection(const int socketA, const int socketB);
+
 
 
 #endif
